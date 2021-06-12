@@ -3,6 +3,7 @@ import sys
 import threading
 import os
 import pickle
+import time
 
 buff_size = 65535
 HOST = '127.0.0.1'
@@ -15,6 +16,10 @@ class Account:
     def __init__ (self, id, name):
         self.id = id
         self.name = name
+        self.friend = set()
+
+    def get_friendlist(self):
+        return self.friend
 
 def clear():
     if os.name == 'nt':
@@ -55,7 +60,8 @@ def helper():
     return
 
 def friendlist():
-    print('b')
+    request = pickle.dumps(('friendlist',))
+    socket_client.send(request)
     return
 
 def chat():
@@ -63,7 +69,9 @@ def chat():
     return
 
 def addfriend():
-    print('d')
+    user_id = input('add user id : ')
+    request = pickle.dumps(('addfriend', user_id))
+    socket_client.send(request)
     return
 
 def sendfile():
@@ -74,7 +82,6 @@ def commandError():
     print('Command not found')
 
 def commandSwitch(args):
-    print(args)
     commandAvailable = {
         'help' : helper,
         'friendlist' : friendlist,
@@ -84,10 +91,31 @@ def commandSwitch(args):
     }
     return commandAvailable.get(args, commandError)()
 
+def read_message():
+    while True:
+        response = socket_client.recv(buff_size)
+        response = pickle.loads(response)
+
+        if response[0] == 'addfriend':
+            if response[1] == 'success':
+                print(response[2].id + ' now added to friendlist')
+            else:
+                print('Cannot add user!')
+        
+        elif response[0] == 'friendlist':
+            print('Your friend : \n===========')
+            for user in response[1]:
+                print(user.id + ' | ' + user.name)
+
+    return
+
 def dasboard(status, myAccount):
     header_page()
     print(status, end='')
     print('Hello, ' + myAccount.name)
+
+    thread = threading.Thread(target=read_message)
+    thread.start()
 
     try:
         while True:

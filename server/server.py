@@ -30,12 +30,13 @@ class AccountManager():
         print("Account " + account.id + " disconnected")
         del self.online[account.id]
 
-
 class Account:
     def __init__ (self, id, name):
         self.id = id
         self.name = name
-        self.friend = []
+        self.friend = set()
+    def get_friendlist(self):
+        return self.friend
 
 def commandHandler(socket_client, address_client):
     currentAccount = None
@@ -72,8 +73,23 @@ def commandHandler(socket_client, address_client):
                 print(response)
                 socket_client.send(pickle.dumps(response))
 
-            
+            elif data[0] == 'friendlist':
+                response = dict()
+                response[0] = data[0]
+                response[1] = currentAccount.get_friendlist()
+                socket_client.send(pickle.dumps(response))
 
+            elif data[0] == 'addfriend':
+                userTarget = accountManager.check_account(data[1])
+                response = dict()
+                response[0] = data[0]            
+                if userTarget and not(userTarget == currentAccount):
+                    currentAccount.friend.add(userTarget)
+                    response[1] = 'success'
+                    response[2] = userTarget
+                else:
+                    response[1] = 'failed'
+                socket_client.send(pickle.dumps(response))
         else:
             if currentAccount:
                 accountManager.set_disconnected(currentAccount)
