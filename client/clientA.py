@@ -6,17 +6,14 @@ buff_size = 65535
 HOST = '127.0.0.1'
 PORT = 5000
 
-class Account:
-    def __init__ (self, id, name):
-        self.id = id
-        self.name = name
+CURSOR_UP_ONE = '\x1b[1A'
 
 def read_message(socket_client):
     while True:
         data = socket_client.recv(buff_size)
         if len(data) == 0:
             break
-        print(data)
+        print(CURSOR_UP_ONE + '\n' + data.decode('utf-8'))
 
 socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socket_client.connect((HOST, PORT))
@@ -27,8 +24,8 @@ thread_client = threading.Thread(target=read_message, args=(socket_client, ))
 thread_client.start()
 
 while True:
-    dest = input("Username tujuan atau bcast untuk broadcast: \n")
-    message = input("Masukkan pesan: \n")
+    dest = input("Username tujuan atau bcast untuk broadcast: ")
+    message = input("Masukkan pesan: ")
 
     if message == 'exit':
         socket_client.close()

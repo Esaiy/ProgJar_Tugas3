@@ -10,7 +10,7 @@ PORT = 5000
 
 socket_client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 socket_client.connect((HOST, PORT))
-
+    
 class Account:
     def __init__ (self, id, name):
         self.id = id
@@ -28,60 +28,108 @@ def header_page():
     print('==============================')
 
 def register(status):
-    header_page()
-    print(status, end='')
+    try:
+        header_page()
+        print('Register an account\n')
+        print(status, end='')
 
-    id = input('Enter username: ')
-    name = input('Enter your name: ')
-    newAccount = Account(id, name)
+        id = input('Enter username: ')
+        name = input('Enter your name: ')
+        newAccount = Account(id, name)
 
-    registerRequest = pickle.dumps(('register', newAccount))
-    socket_client.send(registerRequest)
-    status = socket_client.recv(buff_size)
-    status = pickle.loads(status)
+        registerRequest = pickle.dumps(('register', newAccount))
+        socket_client.send(registerRequest)
+        response = socket_client.recv(buff_size)
+        response = pickle.loads(response)
 
-    print(status)
-    if status == 'failed':
-        register('Account is already Exist\n')
-    else:
-        dasboard('Account Created, you\'re login now\n', status)
+        if response[0] == 'failed':
+            register('Account is already Exist\n')
+        else:
+            dasboard('Account Created, you\'re login now\n', response[1])
+        return
+    except KeyboardInterrupt:
+        welcome_page()
+
+def helper():
+    print('a')
     return
-    
+
+def friendlist():
+    print('b')
+    return
+
+def chat():
+    print('c')
+    return
+
+def addfriend():
+    print('d')
+    return
+
+def sendfile():
+    print('e')
+    return
+
+def commandError():
+    print('Command not found')
+
+def commandSwitch(args):
+    print(args)
+    commandAvailable = {
+        'help' : helper,
+        'friendlist' : friendlist,
+        'addfriend' : addfriend,
+        'chat' : chat,
+        'sendfile' : sendfile,
+    }
+    return commandAvailable.get(args, commandError)()
+
 def dasboard(status, myAccount):
     header_page()
     print(status, end='')
     print('Hello, ' + myAccount.name)
 
-    socket_client.close()
-    return
+    try:
+        while True:
+            command = input('>>> ')
+            commandSwitch(command)
+    except KeyboardInterrupt:
+        socket_client.close()
+        return
 
 def login(status):
-    header_page()
-    print(status, end='')
+    try:
+        header_page()
+        print('Login\n')
+        print(status, end='')
 
-    id = input('Enter username: ')
-    loginRequest = pickle.dumps(('login', id))
-    socket_client.send(loginRequest)
-    status = socket_client.recv(buff_size)
-    status = pickle.loads(status)
+        id = input('Enter username: ')
+        loginRequest = pickle.dumps(('login', id))
+        socket_client.send(loginRequest)
+        response = socket_client.recv(buff_size)
+        response = pickle.loads(response)
 
-    print(status)
-    if status == 'failed':
-        login('Account is not Exist\n')
-    else:
-        dasboard('Login success\n', status)
-    return
+        if response[0] == 'failed':
+            login('Account is not Exist or Already login\n')
+        else:
+            dasboard('Login success\n', response[1])
+        return
+    except KeyboardInterrupt:
+        welcome_page()
 
 def welcome_page():
-    header_page()
-    status = ''
-    islogin = input('Have an account? (y/n) : ')
-    if islogin == 'n':
-        register(status)
-    elif islogin == 'y':
-        login(status)
-    else:
-        print('Byee!!')
+    try:
+        header_page()
+        status = ''
+        islogin = input('Have an account? (y/n) : ')
+        if islogin == 'n':
+            register(status)
+        elif islogin == 'y':
+            login(status)
+        else:
+            print('Byee!!')
+    except KeyboardInterrupt:
+        sys.exit()
 
 def main():  
     welcome_page()
