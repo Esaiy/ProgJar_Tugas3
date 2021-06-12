@@ -34,9 +34,10 @@ class AccountManager():
         del self.online[account.id]
 
 class Account:
-    def __init__ (self, id, name):
+    def __init__ (self, id, name, password):
         self.id = id
         self.name = name
+        self.password = password
         self.friend = set()
     def get_friendlist(self):
         return self.friend
@@ -48,7 +49,6 @@ def commandHandler(socket_client, address_client):
     while True:
         request = socket_client.recv(buff_size)
         if request:
-            print(request)
             data = pickle.loads(request)
 
             if data[0] == 'register' :
@@ -57,31 +57,31 @@ def commandHandler(socket_client, address_client):
                 if currentAccount:
                     response[0] = 'success'
                     response[1] = currentAccount
+                    print("user {} has been created".format(currentAccount.id))
                     accountManager.add_online(currentAccount, socket_client, address_client)
                 else:
                     response[0] = 'failed'
-                
-                print(response)
                 socket_client.send(pickle.dumps(response))
                 
             elif data[0] == 'login' :
                 currentAccount = accountManager.check_account(data[1])
                 response = dict()
-                if currentAccount and not(accountManager.check_online(currentAccount)):
+                if currentAccount and not(accountManager.check_online(currentAccount)) and data[2] == currentAccount.password:
                     response[0] = 'success'
                     response[1] = currentAccount
+                    print("{} is online".format(currentAccount.id))
                     accountManager.add_online(currentAccount, socket_client, address_client)
                 else:
                     response[0] = 'failed'
-                    currentAccount = None
-                
-                print(response)
+                    print("Failed login for user {}".format(data[1]))
+                    currentAccount = None    
                 socket_client.send(pickle.dumps(response))
 
             elif data[0] == 'friendlist':
                 response = dict()
                 response[0] = data[0]
                 response[1] = currentAccount.get_friendlist()
+                print('Request friend list for user {}'.format(currentAccount.id))
                 socket_client.send(pickle.dumps(response))
 
             elif data[0] == 'addfriend':
@@ -104,7 +104,7 @@ def commandHandler(socket_client, address_client):
                 response = dict()
                 response[0] = data[0]
                 if destination == 'bcast' : 
-                    send_broadcast()
+                    send_broadcast(currentAccount, message, socket_client)
                 else:
                     send_message(currentAccount, destination, message, socket_client) 
             
@@ -114,7 +114,9 @@ def commandHandler(socket_client, address_client):
             break
     return
 
-def send_broadcast():
+def send_broadcast(currentAccount, message, socket_client):
+    for destination in currentAccount.friend:
+        send_message(currentAccount, destination, message, socket_client)
     return
 
 def send_message(currentAccount, destination, message, socket_client):
