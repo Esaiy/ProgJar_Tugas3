@@ -18,9 +18,6 @@ class Account:
         self.name = name
         self.friend = set()
 
-    def get_friendlist(self):
-        return self.friend
-
 def clear():
     if os.name == 'nt':
         _ = system('cls')
@@ -65,11 +62,16 @@ def friendlist():
     return
 
 def chat():
-    print('c')
+    data = dict()
+    data[0] = input('Send to (use [user_id] or bcast) :')
+    data[1] = input('Message :')
+
+    request = pickle.dumps(('chat', data))
+    socket_client.send(request)    
     return
 
 def addfriend():
-    user_id = input('add user id : ')
+    user_id = input('Add Friend ID : ')
     request = pickle.dumps(('addfriend', user_id))
     socket_client.send(request)
     return
@@ -79,7 +81,7 @@ def sendfile():
     return
 
 def commandError():
-    print('Command not found')
+    print('Command Not Found')
 
 def commandSwitch(args):
     commandAvailable = {
@@ -98,7 +100,7 @@ def read_message():
 
         if response[0] == 'addfriend':
             if response[1] == 'success':
-                print(response[2].id + ' now added to friendlist')
+                print(response[2].id + ' now added to your friend')
             else:
                 print('Cannot add user!')
         
@@ -107,6 +109,12 @@ def read_message():
             for user in response[1]:
                 print(user.id + ' | ' + user.name)
 
+        elif response[0] == 'chat':
+            if response[1] == 'failed':
+                print(response[2])
+            else:
+                senderid, sendername, message = response[2]
+                print("<{}> {}: {}".format(senderid, sendername, message))
     return
 
 def dasboard(status, myAccount):

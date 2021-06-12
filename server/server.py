@@ -18,7 +18,10 @@ class AccountManager():
             return None
 
     def check_online(self, account):
-        return self.online.get(account.id, None)
+        if type(account) == Account:
+            return self.online.get(account.id, None)
+        elif type(account) == str:
+            return self.online.get(account, None)
         
     def add_online(self, account, socket_client, address_client):
         if not(self.check_online(account)):
@@ -37,6 +40,8 @@ class Account:
         self.friend = set()
     def get_friendlist(self):
         return self.friend
+    def check_friend(self, account):
+        return account in self.friend
 
 def commandHandler(socket_client, address_client):
     currentAccount = None
@@ -84,20 +89,56 @@ def commandHandler(socket_client, address_client):
                 response = dict()
                 response[0] = data[0]            
                 if userTarget and not(userTarget == currentAccount):
-                    currentAccount.friend.add(userTarget)
+                    currentAccount.friend.add(userTarget.id)
                     response[1] = 'success'
                     response[2] = userTarget
                 else:
                     response[1] = 'failed'
                 socket_client.send(pickle.dumps(response))
+
+            elif data[0] == 'chat' :
+                requestData = data[1]
+                destination = requestData[0]
+                message = requestData[1]
+                
+                response = dict()
+                response[0] = data[0]
+                if destination == 'bcast' : 
+                    send_broadcast()
+                else:
+                    send_message(currentAccount, destination, message, socket_client) 
+            
         else:
             if currentAccount:
                 accountManager.set_disconnected(currentAccount)
             break
     return
 
-def new_func():
-    return None
+def send_broadcast():
+    return
+
+def send_message(currentAccount, destination, message, socket_client):
+    response = dict()
+    response[0] = 'chat'
+    if not(destination == currentAccount.id):
+        if(currentAccount.check_friend(destination)):
+            checkDestination = accountManager.check_online(destination)
+            if checkDestination:
+                dest_socket, _ = checkDestination
+                response[1] = 'success'
+                response[2] = (currentAccount.id, currentAccount.name, message)
+                dest_socket.send(pickle.dumps(response))
+                return
+            else:
+                response[2] = destination + ' is not online'
+        else:
+            response[2] = destination + ' is not your friend'
+    else:
+        response[2] = 'Cannot sent message to yourself'
+    
+    response[1] = 'failed'
+    socket_client.send(pickle.dumps(response))
+    return
 
 buff_size = 65535
 HOST = '0.0.0.0'
