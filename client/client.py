@@ -39,6 +39,13 @@ def get_request_header(requestType, lenRequest):
     header += str(lenRequest).encode('utf-8') + b'\n'
     return header
 
+def parseRequest(request):
+    splitRequest = (request.split(b'\n', 2))
+    requestType = splitRequest[0].decode('utf-8')
+    lenData = int(splitRequest[1].decode('utf-8'))
+    data = splitRequest[2]
+    return requestType, lenData, data
+
 def helper(args):
     print('''Manual for Esaiyy Chat\nCommand:
     help - show all command available
@@ -48,7 +55,8 @@ def helper(args):
     chat - chat to specific user or broadcast
         chat [user] - chat to account user
         chat [bcast] - broadcast chat
-    send - send a file to friend
+    send - send a file
+        send [user] - send a file to user
     ''')
     return
 
@@ -81,14 +89,16 @@ def sendfile(args):
 
     Tk().withdraw()
     filepath = askopenfilename()
-    f = open(filepath, 'rb')
-    filename = ntpath.basename(filepath)
-    data = f.read()
+    if filepath:
+        f = open(filepath, 'rb')
+        filename = ntpath.basename(filepath)
+        data = f.read()
 
-    dataRequest = pickle.dumps((user_id, filename, data))
-    print(dataRequest)
-    headerRequest = get_request_header('sendfile', len(dataRequest))
-    socket_client.sendall(headerRequest + dataRequest)
+        dataRequest = pickle.dumps((user_id, filename, data))
+        # print(dataRequest)
+        headerRequest = get_request_header('sendfile', len(dataRequest))
+        socket_client.sendall(headerRequest + dataRequest)
+    
     return
 
 def commandError(args):
@@ -107,33 +117,58 @@ def commandSwitch(args):
     # args = [''] if len(args) == 0 else args
     commandAvailable.get(args[0], commandError)(args)
 
-def read_message():
+def read_message(myaccount):
     while True:
         response = socket_client.recv(buff_size)
-        response = pickle.loads(response)
+        responseType, lenData, data = parseRequest(response)
 
-        if response[0] == 'addfriend':
-            if response[1] == 'success':
-                print('<App>: {} now added to your friend list'.format(response[2].id))
+        dataRemain = lenData - len(data)
+        while dataRemain > 0:
+            response = socket_client.recv(buff_size)
+            data += response
+            dataRemain -= len(response)
+
+        data = pickle.loads(data)
+
+        if responseType == 'addfriend':
+            if data[1] == 'success':
+                print('<App>: {} now added to your friend list'.format(data[2].id))
             else:
                 print('<App>: Cannot add user!')
             print()
 
-        elif response[0] == 'friendlist':
+        elif responseType == 'friendlist':
             print('<App>:\n== Your Friend ==')
-            if response[1]:
-                for idx, user in enumerate(response[1]):
+            if data[1]:
+                for idx, user in enumerate(data[1]):
                     print('  {}. {}'.format(idx + 1, user))
             else:
                 print('No one in your friend list') 
             print()             
         
-        elif response[0] == 'chat':
-            if response[1] == 'failed':
-                print("<App>: {}".format(response[2]))
+        elif responseType == 'chat':
+            if data[1] == 'failed':
+                print("<App>: {}".format(data[2]))
             else:
-                senderid, sendername, message = response[2]
+                senderid, sendername, message = data[2]
                 print("<{}> {}: {}".format(senderid, sendername, message))
+            print()
+
+        elif responseType == 'sendfile':
+            if data[1] == 'failed':
+                print("<App>: {}".format(data[2]))
+            else:
+                senderid, sendername, filename, filedata = data[2]
+                print("<App>: <{}> {} send you a file ".format(senderid, sendername))
+                
+                dir = os.listdir(os.getcwd())
+                if not(myaccount.id in dir):
+                    os.mkdir(myaccount.id)
+
+                f = open(myaccount.id + '/' + filename, 'wb')
+                f.write(filedata)
+                f.close()
+                
             print()
 
 def dasboard(status, myAccount):
@@ -142,7 +177,7 @@ def dasboard(status, myAccount):
     print('Hello, ' + myAccount.name + '\n')
     print('Type "help" to see all available command \n')
     
-    thread = threading.Thread(target=read_message)
+    thread = threading.Thread(target=read_message, args=(myAccount,))
     thread.daemon = True
     thread.start()
 

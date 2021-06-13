@@ -44,6 +44,12 @@ class Account:
     def check_friend(self, account):
         return account in self.friend
 
+def get_response_header(requestType, lenRequest):
+    header = b''
+    header += requestType.encode('utf-8') + b'\n'
+    header += str(lenRequest).encode('utf-8') + b'\n'
+    return header
+
 def parseRequest(request):
     splitRequest = (request.split(b'\n', 2))
     requestType = splitRequest[0].decode('utf-8')
@@ -95,22 +101,27 @@ def commandHandler(socket_client, address_client):
 
             elif requestType == 'friendlist':
                 response = dict()
-                response[0] = requestType
                 response[1] = currentAccount.get_friendlist()
+                responseData = pickle.dumps(response)
+                responseHeader = get_response_header(requestType, len(responseData))
                 print('Request friend list for user {}'.format(currentAccount.id))
-                socket_client.send(pickle.dumps(response))
+                print(responseHeader + responseData)
+                socket_client.sendall(responseHeader + responseData)
 
             elif requestType == 'addfriend':
                 userTarget = accountManager.check_account(data[0])
                 response = dict()
-                response[0] = requestType            
+           
                 if userTarget and not(userTarget == currentAccount):
                     currentAccount.friend.add(userTarget.id)
                     response[1] = 'success'
                     response[2] = userTarget
                 else:
                     response[1] = 'failed'
-                socket_client.send(pickle.dumps(response))
+
+                responseData = pickle.dumps(response)
+                responseHeader = get_response_header(requestType, len(responseData))
+                socket_client.sendall(responseHeader + responseData)
 
             elif requestType == 'chat' :
                 requestData = data[0]
@@ -118,7 +129,6 @@ def commandHandler(socket_client, address_client):
                 message = requestData[1]
                 
                 response = dict()
-                response[0] = requestType
                 if destination == 'bcast' : 
                     send_broadcast(currentAccount, message, socket_client)
                 else:
@@ -142,14 +152,35 @@ def send_broadcast(currentAccount, message, socket_client):
     return
 
 def send_file(currentAccount, destination, filename, filedata, socket_client):
-    f = open(filename, 'wb')
-    f.write(filedata)
-    f.close()
+    response = dict()
+    requestType = 'sendfile'
+    if not(destination == currentAccount.id):
+        if(currentAccount.check_friend(destination)):
+            checkDestination = accountManager.check_online(destination)
+            if checkDestination:
+                dest_socket, _ = checkDestination
+                response[1] = 'success'
+                response[2] = (currentAccount.id, currentAccount.name, filename, filedata)
+                responseData = pickle.dumps(response)
+                responseHeader = get_response_header(requestType, len(responseData))
+                dest_socket.sendall(responseHeader + responseData)
+                return
+            else:
+                response[2] = destination + ' is not online'
+        else:
+            response[2] = destination + ' is not your friend'
+    else:
+        response[2] = 'Cannot sent file to yourself'
+
+    response[1] = 'failed'
+    responseData = pickle.dumps(response)
+    responseHeader = get_response_header(requestType, len(responseData))
+    socket_client.sendall(responseHeader + responseData)
     return
 
 def send_message(currentAccount, destination, message, socket_client):
     response = dict()
-    response[0] = 'chat'
+    requestType = 'chat'
     if not(destination == currentAccount.id):
         if(currentAccount.check_friend(destination)):
             checkDestination = accountManager.check_online(destination)
@@ -157,7 +188,9 @@ def send_message(currentAccount, destination, message, socket_client):
                 dest_socket, _ = checkDestination
                 response[1] = 'success'
                 response[2] = (currentAccount.id, currentAccount.name, message)
-                dest_socket.send(pickle.dumps(response))
+                responseData = pickle.dumps(response)
+                responseHeader = get_response_header(requestType, len(responseData))
+                dest_socket.sendall(responseHeader + responseData)
                 return
             else:
                 response[2] = destination + ' is not online'
@@ -167,7 +200,9 @@ def send_message(currentAccount, destination, message, socket_client):
         response[2] = 'Cannot sent message to yourself'
     
     response[1] = 'failed'
-    socket_client.send(pickle.dumps(response))
+    responseData = pickle.dumps(response)
+    responseHeader = get_response_header(requestType, len(responseData))
+    socket_client.sendall(responseHeader + responseData)
     return
 
 buff_size = 1024
@@ -177,7 +212,7 @@ clients = {}
 
 try:
     accountManager = pickle.load(open('accountmanager.pkl', 'rb'))
-except (OSError, IOError):
+except:
     accountManager = AccountManager()
 
 def main():
