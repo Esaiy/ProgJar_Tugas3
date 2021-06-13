@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Cache-Control" content="no-cache">
+
+        <title>The Hydrocarbons Companion</title>
+
+        <link href="https://fonts.googleapis.com/css?family=Oswald&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+        <style>
+            * {
+                user-select: none;
+            }
+
+            html, body {
+                /*overflow: hidden;*/
+                font-family: 'Oswald', sans-serif;
+            }
+
+            body {
+                margin: 0;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+
+            canvas {
+                width: 100%;
+                height: 100%;
+                background: transparent;
+                opacity: 0.3;
+            }
+
+            .headline-container {
+               position: absolute; /* or absolute */
+                top: 10%;
+                left: 20%;
+                right: 15%;
+                bottom: 15%;
+            }
+
+            .headline-container h3 {
+                color:black;
+                text-transform: uppercase;
+                font-size: 60px;
+                padding-left: 47px;
+               margin-bottom: 0;
+            }
+
+            /* .headline-container p {
+                margin-top: -30px;
+                padding-left: 7px;
+                color: white;
+            } */
+            #bg {
+                width: 100%;
+                height: 100%;
+                display: block;
+                position: fixed;
+                left: 0;
+                top: 0;
+                z-index: -1;
+                pointer-events: none;
+                border: none;
+            }
+
+            .card-image {
+                width: 100%;
+                height: 200px;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .card-image > img {
+                width: 100%;
+                max-width: inherit;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                -webkit-transform: translate(-50%, -50%) scale(1);
+                -moz-transform: translate(-50%, -50%) scale(1);
+                -o-transform: translate(-50%, -50%) scale(1);
+                transform: translate(-50%, -50%) scale(1);
+            }
+        </style>
+        <script>
+            window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+            ga('create', 'UA-105392568-1', 'auto');
+            ga('send', 'pageview');
+        </script>
+        <script async src='https://www.google-analytics.com/analytics.js'></script>
+        <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    </head>
+    <body>
+        <iframe id="bg" src="views/homeBackground.html"></iframe>
+            <div class="headline-container">
+                <h3>HYDROCARBON COMPANIONS</h3>
+                <div class="container" style="padding-left: 0px; padding-right: 0px;">
+                    <div class="row">
+                        <div class="col-sm-6">
+                          <div class="card">
+                            <div class="card-body">
+                              <h4 class="card-title">Visualize</h4>
+                            </div>
+
+                            <div class="card-image">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Methane-2D-stereo.svg/220px-Methane-2D-stereo.svg.png" style="height: 5cm; width: 5cm;"></img>
+                            </div>
+
+                            <div class="card-body">
+                                <p class="card-text">Enter here to visualize the hydrocarbon structures in 3D</p>
+                                <a href="visualize" class="btn btn-primary">Enter</a>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-sm-6">
+                          <div class="card">
+                            <div class="card-body">
+                              <h4 class="card-title">Trivia</h4>
+                            </div>
+
+                            <div class="card-image">
+                                <img src="https://pngimg.com/uploads/question_mark/question_mark_PNG128.png" style="height: 4.5cm; width: 4.5cm;"></img>
+                            </div>
+
+                            <div class="card-body">
+                                <p class="card-text">Test your hydrocarbon knowledge with these questions.</p>
+                                <a href="trivia" class="btn btn-primary">Enter</a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                </div>
+            </div>
+        <!-- <canvas></canvas>
+        <script src="main.js"></script> -->
+    </body>
+</html>

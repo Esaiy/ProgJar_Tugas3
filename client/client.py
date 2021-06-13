@@ -3,7 +3,10 @@ import sys
 import threading
 import os
 import pickle
+import ntpath
 from getpass import getpass
+from tkinter import Tk     # from tkinter import Tk for Python 3.x
+from tkinter.filedialog import askopenfilename
 
 buff_size = 65535
 HOST = '127.0.0.1'
@@ -30,6 +33,12 @@ def header_page():
     print('Welcome to Esaiyy Chat')
     print('==============================')
 
+def get_request_header(requestType, lenRequest):
+    header = b''
+    header += requestType.encode('utf-8') + b'\n'
+    header += str(lenRequest).encode('utf-8') + b'\n'
+    return header
+
 def helper(args):
     print('''Manual for Esaiyy Chat\nCommand:
     help - show all command available
@@ -44,31 +53,46 @@ def helper(args):
     return
 
 def friendlist(args):
-    request = pickle.dumps(('friendlist',))
-    socket_client.send(request)
+    dataRequest = pickle.dumps(tuple())
+    headerRequest = get_request_header('friendlist', len(dataRequest))
+    socket_client.send(headerRequest + dataRequest)
     return
 
 def chat(args):
     data = dict()
-    data[0] = args[1] if args[1] else input('<Server>: Send to (use [user_id] or bcast) :\n')
-    data[1] = input('<Server>: Type your message :\n')
 
-    request = pickle.dumps(('chat', data))
-    socket_client.send(request)    
+    data[0] = args[1] if len(args) > 1 else input('<App>: Send to (use [user_id] or bcast) :\n')
+    data[1] = input('<App>: Type your message :\n')
+
+    dataRequest = pickle.dumps((data,))
+    headerRequest = get_request_header('chat', len(dataRequest))
+    socket_client.send(headerRequest + dataRequest)    
     return
 
 def addfriend(args):
-    user_id = args[1] if args[1] else input('<Server>: Add Friend ID :\n')
-    request = pickle.dumps(('addfriend', user_id))
-    socket_client.send(request)
+    user_id = args[1] if len(args) > 1 else input('<App>: Add Friend ID :\n')
+    dataRequest = pickle.dumps((user_id, ))
+    headerRequest = get_request_header('addfriend', len(dataRequest))
+    socket_client.send(headerRequest + dataRequest)  
     return
 
 def sendfile(args):
+    user_id = args[1] if len(args) > 1 else input('<App>: Send to : (user_id)\n')
 
+    Tk().withdraw()
+    filepath = askopenfilename()
+    f = open(filepath, 'rb')
+    filename = ntpath.basename(filepath)
+    data = f.read()
+
+    dataRequest = pickle.dumps((user_id, filename, data))
+    print(dataRequest)
+    headerRequest = get_request_header('sendfile', len(dataRequest))
+    socket_client.sendall(headerRequest + dataRequest)
     return
 
-def commandError():
-    print('<Server>: Command Not Found')
+def commandError(args):
+    print('<App>: Command Not Found')
 
 def commandSwitch(args):
     commandAvailable = {
@@ -80,6 +104,7 @@ def commandSwitch(args):
         'clear' : clear
     }
     args = args.split(' ')
+    # args = [''] if len(args) == 0 else args
     commandAvailable.get(args[0], commandError)(args)
 
 def read_message():
@@ -89,13 +114,13 @@ def read_message():
 
         if response[0] == 'addfriend':
             if response[1] == 'success':
-                print('<Server>: {} now added to your friend list'.format(response[2].id))
+                print('<App>: {} now added to your friend list'.format(response[2].id))
             else:
-                print('<Server>: Cannot add user!')
+                print('<App>: Cannot add user!')
             print()
 
         elif response[0] == 'friendlist':
-            print('<Server>:\n== Your Friend ==')
+            print('<App>:\n== Your Friend ==')
             if response[1]:
                 for idx, user in enumerate(response[1]):
                     print('  {}. {}'.format(idx + 1, user))
@@ -105,7 +130,7 @@ def read_message():
         
         elif response[0] == 'chat':
             if response[1] == 'failed':
-                print("<Server>: {}".format(response[2]))
+                print("<App>: {}".format(response[2]))
             else:
                 senderid, sendername, message = response[2]
                 print("<{}> {}: {}".format(senderid, sendername, message))
@@ -140,8 +165,11 @@ def register(status):
         password = getpass('Enter password: ')
         newAccount = Account(id, name, password)
 
-        registerRequest = pickle.dumps(('register', newAccount))
-        socket_client.send(registerRequest)
+
+        dataRequest = pickle.dumps((newAccount,))
+        headerRequest = get_request_header('register', len(dataRequest))
+
+        socket_client.send(headerRequest + dataRequest)
         response = socket_client.recv(buff_size)
         response = pickle.loads(response)
 
@@ -161,9 +189,11 @@ def login(status):
 
         id = input('Enter username: ')
         password = getpass('Enter password: ')
-        
-        loginRequest = pickle.dumps(('login', id, password))
-        socket_client.send(loginRequest)
+
+        dataRequest = pickle.dumps((id, password))
+        headerRequest = get_request_header('login', len(dataRequest))
+
+        socket_client.send(headerRequest + dataRequest)
         response = socket_client.recv(buff_size)
         response = pickle.loads(response)
 
